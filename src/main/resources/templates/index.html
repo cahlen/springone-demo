@@ -1,0 +1,185 @@
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.js"></script>
+    <script type="text/javascript" src="http://www.amcharts.com/lib/3/amcharts.js"></script>
+    <script type="text/javascript" src="http://www.amcharts.com/lib/3/serial.js"></script>
+        <script th:inline="javascript">
+        /*<![CDATA[*/
+        var finalMale = [];
+        var finalFemale = [];
+        var finalMaleJson = [];
+        var finalFemaleJson = [];
+
+        function processMale(parsedMaleJson) {
+            while(finalMaleJson.length > 0) { finalMaleJson.pop(); }
+            finalMale = [];
+            for(var i=0; i < Object.keys(parsedMaleJson).length; i+=1) {
+                if(!(parsedMaleJson[i].age in Object.keys(finalMale))) {
+                    finalMale[parsedMaleJson[i].age] = parsedMaleJson[i].target;
+                }
+                else {
+                    finalMale[parsedMaleJson[i].age] += parsedMaleJson[i].target;
+                }
+            }
+            for(var i = 0; i <= finalMale.length; i+=1) {
+                if (finalMale[i] != null) {
+                    var pushData = {age: i, target: finalMale[i]};
+                    finalMaleJson.push(pushData);
+                }
+            }
+            console.log('processMale Called');
+            console.log(finalMaleJson);
+        }
+
+        function processFemale(parsedFemaleJson) {
+            while(finalFemaleJson.length > 0) { finalFemaleJson.pop(); }
+            finalFemale = [];
+            for(var i=0; i < Object.keys(parsedFemaleJson).length; i+=1) {
+                if(!(parsedFemaleJson[i].age in finalFemale)) {
+                    finalFemale[parsedFemaleJson[i].age] = parsedFemaleJson[i].target;
+                }
+                else {
+                    finalFemale[parsedFemaleJson[i].age] += parsedFemaleJson[i].target;
+                }
+            }
+            for(var i = 0; i <= finalFemale.length; i+=1) {
+                if (finalFemale[i] != null) {
+                    var pushData = {age: i, target: finalFemale[i]};
+                    finalFemaleJson.push(pushData);
+                }
+            }
+        }
+
+        function initData () {
+            var dummyPush = {age: 0, target: 0};
+            finalMaleJson.push(dummyPush);
+            finalFemaleJson.push(dummyPush);
+        }
+
+        function callback(data, gender) {
+            if (gender =="male") {
+                male = JSON.parse(data);
+                processMale(male);
+            }
+            if (gender == "female") {
+                female = JSON.parse(data);
+                processFemale(female);
+            }
+        }
+        function httpGetAsync(theUrl, callback, gender)
+        {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                    callback(xmlHttp.responseText, gender);
+            }
+            xmlHttp.open("GET", theUrl, true); // true for asynchronous
+            xmlHttp.send(null);
+        }
+        <!--/*
+        getData = new httpGetAsync('/data', callback);
+        */-->
+
+        /*]]>*/
+        </script>
+        <script type="text/javascript">
+        /*<![CDATA[*/
+        AmCharts.ready(function() {
+            initData();
+
+            var chart1 = new AmCharts.AmSerialChart();
+            var legend1 = new AmCharts.AmLegend();
+            chart1.dataProvider = finalMaleJson;//chartData;
+            chart1.categoryField = "age";
+            var graph1 = new AmCharts.AmGraph();
+            graph1.valueField = "target";
+            graph1.type = "column";
+            graph1.fillColors = "#8EC03F"; //, #EC008C"
+            graph1.lineColor = "#8EC03F";
+            graph1.fillAlphas = 0.8;
+            chart1.angle = 30;
+            chart1.depth3D = 15;
+            chart1.titles = [{text:"Men (<=50k per year)"}, {text: "Count vs Age", bold:false}];
+            legend1.data = [{title:"Men", color:"#8EC03F"}];
+            chart1.addLegend(legend1);
+            chart1.addGraph(graph1);
+            chart1.write('chart1div');
+
+            setInterval(function () {
+                // normally you would load new datapoints here,
+                // but we will just generate some random values
+                // and remove the value from the beginning so that
+                // we get nice sliding graph feeling
+
+                // remove datapoint from the beginning
+                // chart1.dataProvider;
+                maleData = new httpGetAsync('/data?gender=male', callback, "male");
+                chart1.validateData();
+            }, 500);
+        });
+        AmCharts.ready(function() {
+            initData();
+
+            var chart2 = new AmCharts.AmSerialChart();
+            var legend2 = new AmCharts.AmLegend();
+            chart2.dataProvider = finalFemaleJson;//chartData;
+            chart2.categoryField = "age";
+            var graph2 = new AmCharts.AmGraph();
+            graph2.valueField = "target";
+            graph2.type = "column";
+            graph2.fillColors = "#EC008C";
+            graph2.lineColor = "#EC008C";
+            graph2.fillAlphas = 0.8;
+            chart2.angle = 30;
+            chart2.depth3D = 15;
+            chart2.titles = [{text:"Women (<=50k per year)"}, {text: "Count vs Age", bold:false}];
+            legend2.data = [{title:"Women", color:"#EC008C"}];
+            chart2.addLegend(legend2);
+            chart2.addGraph(graph2);
+            chart2.write('chart2div');
+
+            setInterval(function () {
+                // normally you would load new datapoints here,
+                // but we will just generate some random values
+                // and remove the value from the beginning so that
+                // we get nice sliding graph feeling
+
+                // remove datapoint from the beginning
+                //chart2.dataProvider;
+                femaleData = new httpGetAsync('/data?gender=female', callback, "female");
+                chart2.validateData();
+            }, 500);
+        });
+        /*]]>*/
+    </script>
+    <style>
+        #wrapper {
+            width: 1380px;
+            height: 400px;
+            overflow: hidden; /* add this to contain floated children */
+        }
+        #chart1div {
+            width: 640px;
+            float:left; /* add this */
+        }
+        #chart2div {
+            width: 640px;
+            float: left; /* add this */
+        }
+    </style>
+</head>
+<body>
+<table width="1300">
+    <tr width="1380">
+        <td width="690" align="left"><font face="Arial" size="20">zData Dataflow Demo</font></td>
+        <td width="690" align="right"><img src="http://zdatainc.com/wp-content/uploads/2014/01/logo_email.png"></img></td>
+    </tr>
+
+</table>
+<div id="wrapper">
+<div id="chart1div" style="width: 640px; height: 400px;"></div>
+<div id="chart2div" style="width: 640px; height: 400px;"></div>
+</div>
+zData Inc
+</body>
+</html>
